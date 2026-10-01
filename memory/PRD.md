@@ -45,5 +45,9 @@ Sistem informasi kepegawaian terintegrasi, production-ready, modular, RBAC + gra
 
 ## Next Tasks
 1. Integrasi Google Drive untuk upload dokumen & dokumentasi apel (menunggu kredensial user).
-2. Laporan Notula Apel terfilter periode/pembina/lokasi.
+2. Email pengingat (opsional) selain notifikasi in-app.
+
+## Added 2026-10-01 (Fase 3)
+- Export laporan diperluas: **KGB, Kenaikan Pangkat, Cuti, Penilaian** (Excel + PDF) di Pusat Laporan. Laporan Penilaian menampilkan Nilai Kehadiran otomatis.
+- **Laporan Notula Apel Staf** terfilter (periode/tanggal, pembina, lokasi, jenis apel): tampilan daftar + export PDF berisi info kegiatan, rekap kehadiran, dan seluruh amanat (tema/pokok/ringkasan/tindak lanjut/catatan). Diverifikasi visual.
 

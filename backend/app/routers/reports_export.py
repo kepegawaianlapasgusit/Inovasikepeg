@@ -111,6 +111,161 @@ async def export_employees(format: str = "excel", user: dict = Depends(require("
     return _stream(_excel(title, headers, rows), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "data-pegawai.xlsx")
 
 
+# ---------------- Shared helpers ----------------
+async def _emp(eid):
+    if not eid:
+        return {"name": "-", "nip": "-"}
+    e = await db.employees.find_one({"id": eid}, {"_id": 0, "name": 1, "nip": 1})
+    return e or {"name": "-", "nip": "-"}
+
+
+def _due_status(next_date, thr):
+    try:
+        dl = (datetime.strptime((next_date or "")[:10], "%Y-%m-%d").date() - date.today()).days
+    except (ValueError, TypeError):
+        return "-", None
+    if dl < 0:
+        return "Terlambat", dl
+    if dl <= 30:
+        return "Jatuh Tempo", dl
+    if dl <= thr:
+        return "Mendekati", dl
+    return "Aman", dl
+
+
+async def _out(format, title, sub, headers, rows, fname, landscape_mode=False):
+    if format == "pdf":
+        return _stream(_pdf(title, sub, headers, rows, landscape_mode=landscape_mode), "application/pdf", f"{fname}.pdf")
+    return _stream(_excel(title, headers, rows), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", f"{fname}.xlsx")
+
+
+# ---------------- KGB report ----------------
+@router.get("/kgb/export")
+async def export_kgb(format: str = "excel", user: dict = Depends(require("report.export", "kgb.view"))):
+    s = await db.system_settings.find_one({"id": "global"}) or {}
+    thr = s.get("kgb_threshold_days", 90)
+    headers = ["Nama", "NIP", "Nomor SK", "Tanggal Terakhir", "KGB Berikutnya", "Sisa Hari", "Status"]
+    rows = []
+    async for k in db.kgb_records.find({"deleted": {"$ne": True}}).sort("next_date", 1):
+        e = await _emp(k.get("employee_id"))
+        st, dl = _due_status(k.get("next_date"), thr)
+        rows.append([e["name"], e["nip"], k.get("nomor_sk"), (k.get("last_date") or "-")[:10], (k.get("next_date") or "-")[:10], f"{dl} hari" if dl is not None else "-", st])
+    return await _out(format, "Laporan KGB", f"Total {len(rows)} data", headers, rows, "laporan-kgb")
+
+
+# ---------------- Promotion report ----------------
+@router.get("/promotion/export")
+async def export_promotion(format: str = "excel", user: dict = Depends(require("report.export", "promotion.view"))):
+    s = await db.system_settings.find_one({"id": "global"}) or {}
+    thr = s.get("promotion_threshold_days", 120)
+    headers = ["Nama", "NIP", "Pangkat Sekarang", "Pangkat Tujuan", "Periode Berikutnya", "Sisa Hari", "Status"]
+    rows = []
+    async for p in db.promotion_records.find({"deleted": {"$ne": True}}).sort("next_date", 1):
+        e = await _emp(p.get("employee_id"))
+        st, dl = _due_status(p.get("next_date"), thr)
+        rows.append([e["name"], e["nip"], p.get("pangkat_sekarang"), p.get("pangkat_tujuan"), (p.get("next_date") or "-")[:10], f"{dl} hari" if dl is not None else "-", st])
+    return await _out(format, "Laporan Kenaikan Pangkat", f"Total {len(rows)} data", headers, rows, "laporan-kenaikan-pangkat")
+
+
+# ---------------- Leave report ----------------
+@router.get("/leave/export")
+async def export_leave(format: str = "excel", user: dict = Depends(require("report.export", "leave.view"))):
+    headers = ["Nama", "NIP", "Jenis Cuti", "Mulai", "Selesai", "Status", "Alasan"]
+    rows = []
+    async for l in db.leave_records.find({"deleted": {"$ne": True}}).sort("created_at", -1):
+        e = await _emp(l.get("employee_id"))
+        rows.append([e["name"], e["nip"], l.get("jenis"), (l.get("tanggal_mulai") or "-")[:10], (l.get("tanggal_selesai") or "-")[:10], l.get("status"), l.get("alasan")])
+    return await _out(format, "Laporan Cuti", f"Total {len(rows)} data", headers, rows, "laporan-cuti")
+
+
+# ---------------- Evaluation report ----------------
+@router.get("/evaluation/export")
+async def export_evaluation(format: str = "excel", user: dict = Depends(require("report.export", "evaluation.view"))):
+    headers = ["Nama", "Periode", "Nilai Manual", "Nilai Kehadiran (%)", "Penilai", "Status"]
+    rows = []
+    async for ev in db.evaluations.find({"deleted": {"$ne": True}}).sort("created_at", -1):
+        e = await _emp(ev.get("employee_id"))
+        rows.append([e["name"], ev.get("period"), ev.get("manual_score"), ev.get("attendance_percentage"), ev.get("evaluator_name"), ev.get("status")])
+    return await _out(format, "Laporan Penilaian Pegawai", f"Total {len(rows)} data", headers, rows, "laporan-penilaian")
+
+
+# ---------------- Notula Apel report (filterable) ----------------
+async def _notula_data(date_from=None, date_to=None, pembina=None, location=None, attendance_type_id=None):
+    from .attendance import compute_event_recap
+    q: Dict[str, Any] = {"deleted": {"$ne": True}}
+    if attendance_type_id:
+        q["attendance_type_id"] = attendance_type_id
+    else:
+        q["attendance_type_id"] = "att-staf"  # Notula is Apel Staf by concept
+    if date_from or date_to:
+        q["date"] = {}
+        if date_from:
+            q["date"]["$gte"] = date_from
+        if date_to:
+            q["date"]["$lte"] = date_to
+    if pembina:
+        q["pembina"] = {"$regex": pembina, "$options": "i"}
+    if location:
+        q["location"] = {"$regex": location, "$options": "i"}
+    types = {t["id"]: t["name"] async for t in db.attendance_types.find({})}
+    out = []
+    async for ev in db.attendance_events.find(q, {"_id": 0}).sort("date", -1):
+        note = await db.attendance_notes.find_one({"event_id": ev["id"]}, {"_id": 0}) or {}
+        recap = await compute_event_recap(ev["id"])
+        out.append({
+            "code": ev.get("code"), "date": ev.get("date"), "time": ev.get("time"),
+            "type_name": types.get(ev.get("attendance_type_id"), "-"), "session": ev.get("session"),
+            "location": ev.get("location"), "pembina": ev.get("pembina"), "pembina_jabatan": ev.get("pembina_jabatan"),
+            "recap": recap,
+            "tema": note.get("tema"), "pokok": note.get("pokok"), "isi": note.get("isi"),
+            "tindak_lanjut": note.get("tindak_lanjut"), "catatan": note.get("catatan"),
+        })
+    return out
+
+
+@router.get("/notula")
+async def notula_report(date_from: Optional[str] = None, date_to: Optional[str] = None,
+                        pembina: Optional[str] = None, location: Optional[str] = None,
+                        attendance_type_id: Optional[str] = None,
+                        user: dict = Depends(require("report.view", "attendance.view"))):
+    return {"items": await _notula_data(date_from, date_to, pembina, location, attendance_type_id)}
+
+
+@router.get("/notula/export")
+async def notula_export(date_from: Optional[str] = None, date_to: Optional[str] = None,
+                        pembina: Optional[str] = None, location: Optional[str] = None,
+                        attendance_type_id: Optional[str] = None,
+                        user: dict = Depends(require("report.export", "attendance.export"))):
+    items = await _notula_data(date_from, date_to, pembina, location, attendance_type_id)
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm, leftMargin=16 * mm, rightMargin=16 * mm)
+    styles = getSampleStyleSheet()
+    org = ParagraphStyle("org", parent=styles["Normal"], fontSize=9, textColor=GOLD)
+    h = ParagraphStyle("h", parent=styles["Title"], fontSize=14, textColor=NAVY, spaceAfter=2)
+    sub = ParagraphStyle("sub", parent=styles["Normal"], fontSize=9, textColor=colors.HexColor("#64748B"), spaceAfter=8)
+    sec = ParagraphStyle("sec", parent=styles["Heading2"], fontSize=11, textColor=NAVY, spaceBefore=12, spaceAfter=3)
+    body = ParagraphStyle("body", parent=styles["Normal"], fontSize=9, leading=13)
+    period = f"Periode: {date_from or 'awal'} s/d {date_to or 'sekarang'}"
+    elems = [Paragraph("LAPAS GUNUNGSITOLI", org), Paragraph("LAPORAN NOTULA APEL STAF", h), Paragraph(period, sub)]
+    if not items:
+        elems.append(Paragraph("Tidak ada data notula pada filter ini.", body))
+    for it in items:
+        r = it["recap"]
+        elems.append(Paragraph(f"{it['code']} — {it['date']} {it['time']} WIB · {it['session']}", sec))
+        elems.append(Paragraph(f"<b>Lokasi:</b> {it['location'] or '-'} &nbsp;&nbsp; <b>Pembina:</b> {it['pembina'] or '-'} ({it['pembina_jabatan'] or '-'})", body))
+        elems.append(Paragraph(f"<b>Rekap:</b> Hadir {r['present']}/{r['total']} ({r['percentage']}%)", body))
+        elems.append(Paragraph(f"<b>Tema:</b> {it['tema'] or '-'}", body))
+        elems.append(Paragraph(f"<b>Pokok Amanat:</b> {it['pokok'] or '-'}", body))
+        elems.append(Paragraph(f"<b>Ringkasan:</b> {it['isi'] or '-'}", body))
+        elems.append(Paragraph(f"<b>Tindak Lanjut:</b> {it['tindak_lanjut'] or '-'}", body))
+        elems.append(Paragraph(f"<b>Catatan:</b> {it['catatan'] or '-'}", body))
+    elems.append(Spacer(1, 10))
+    elems.append(Paragraph(f"Dicetak: {datetime.now().strftime('%d-%m-%Y %H:%M')}", ParagraphStyle("f", parent=body, fontSize=7, textColor=colors.grey)))
+    doc.build(elems)
+    buf.seek(0)
+    return _stream(buf, "application/pdf", "laporan-notula-apel.pdf")
+
+
 # ---------------- Attendance recap report ----------------
 async def _recap_rows(attendance_type_id=None, date_from=None, date_to=None):
     statuses = {s["id"]: s async for s in db.attendance_statuses.find({"deleted": {"$ne": True}})}
