@@ -51,3 +51,6 @@ Sistem informasi kepegawaian terintegrasi, production-ready, modular, RBAC + gra
 - Export laporan diperluas: **KGB, Kenaikan Pangkat, Cuti, Penilaian** (Excel + PDF) di Pusat Laporan. Laporan Penilaian menampilkan Nilai Kehadiran otomatis.
 - **Laporan Notula Apel Staf** terfilter (periode/tanggal, pembina, lokasi, jenis apel): tampilan daftar + export PDF berisi info kegiatan, rekap kehadiran, dan seluruh amanat (tema/pokok/ringkasan/tindak lanjut/catatan). Diverifikasi visual.
 
+## Added 2026-10-01 (Fase 4)
+- **Grafik Dashboard Admin**: Tren Kehadiran 14 hari (area chart % kehadiran, emas/navy) + Sebaran Status Kehadiran 90 hari (donut pie, warna per status). Endpoint `/api/dashboard/charts` (trend + distribution) + recharts. Terverifikasi: data nyata dari DB, frontend compile bersih, tanpa JS error.
+

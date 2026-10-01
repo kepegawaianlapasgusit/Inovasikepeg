@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { StatCard, Card, EmptyState } from "@/components/common/Ui";
-import { formatDateTime, formatDate } from "@/lib/format";
+import { formatDateTime, formatDate, ATTENDANCE_STATUS_STYLE } from "@/lib/format";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 import {
   Users, UserCheck, Building2, UserCog, ClipboardCheck, CalendarDays,
   TrendingUp, Award, Megaphone, Activity, Loader2, Bell,
@@ -11,9 +15,11 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [charts, setCharts] = useState(null);
 
   useEffect(() => {
     api.get("/dashboard").then(({ data }) => setData(data));
+    api.get("/dashboard/charts").then(({ data }) => setCharts(data)).catch(() => {});
   }, []);
 
   if (!data)
@@ -23,10 +29,10 @@ export default function Dashboard() {
       </div>
     );
 
-  return data.mode === "admin" ? <AdminDashboard data={data} user={user} /> : <EmployeeDashboard data={data} user={user} />;
+  return data.mode === "admin" ? <AdminDashboard data={data} user={user} charts={charts} /> : <EmployeeDashboard data={data} user={user} />;
 }
 
-function AdminDashboard({ data, user }) {
+function AdminDashboard({ data, user, charts }) {
   const s = data.stats;
   return (
     <div className="space-y-6">
@@ -45,6 +51,58 @@ function AdminDashboard({ data, user }) {
         <StatCard label="KGB Terpantau" value={s.kgb_due} icon={TrendingUp} accent="#D97706" testid="stat-kgb" />
         <StatCard label="Kenaikan Pangkat" value={s.promotion_due} icon={Award} accent="#B45309" testid="stat-promotion" />
       </div>
+
+      {charts && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={18} className="text-[#C9A227]" />
+              <h2 className="text-lg font-semibold text-[#0B1F3A]">Tren Kehadiran (14 Hari)</h2>
+            </div>
+            {charts.trend.every((t) => t.total === 0) ? (
+              <EmptyState icon={Activity} title="Belum ada data kehadiran" />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={charts.trend} margin={{ top: 5, right: 10, left: -18, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="trend" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0B1F3A" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#0B1F3A" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip formatter={(v, n) => (n === "percentage" ? [`${v}%`, "Kehadiran"] : [v, n === "total" ? "Peserta" : "Hadir"])} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Area type="monotone" dataKey="percentage" stroke="#C9A227" strokeWidth={2.5} fill="url(#trend)" name="percentage" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={18} className="text-[#C9A227]" />
+              <h2 className="text-lg font-semibold text-[#0B1F3A]">Sebaran Status Kehadiran (90 Hari)</h2>
+            </div>
+            {charts.distribution.every((d) => d.value === 0) ? (
+              <EmptyState icon={ClipboardCheck} title="Belum ada data status" />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={charts.distribution.filter((d) => d.value > 0)} dataKey="value" nameKey="label" innerRadius={55} outerRadius={85} paddingAngle={2}>
+                    {charts.distribution.filter((d) => d.value > 0).map((d) => (
+                      <Cell key={d.key} fill={ATTENDANCE_STATUS_STYLE[d.key]?.text || "#64748B"} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="p-5 lg:col-span-1">

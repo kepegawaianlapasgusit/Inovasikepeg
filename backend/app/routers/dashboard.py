@@ -88,6 +88,54 @@ async def dashboard(user: dict = Depends(get_current_user)):
     }
 
 
+@router.get("/dashboard/charts")
+async def dashboard_charts(user: dict = Depends(get_current_user)):
+    """Tren kehadiran 14 hari terakhir + sebaran status apel (90 hari)."""
+    from datetime import timedelta
+    from .attendance import _status_map
+    statuses = await _status_map()
+
+    # Build last-14-days date list
+    days = [(date.today() - timedelta(days=i)).isoformat() for i in range(13, -1, -1)]
+
+    # Trend: per-day events + present percentage
+    trend_map = {d: {"date": d, "events": set(), "present": 0, "total": 0} for d in days}
+    async for ev in db.attendance_events.find({"deleted": {"$ne": True}, "date": {"$in": days}}, {"_id": 0, "id": 1, "date": 1}):
+        if ev["date"] in trend_map:
+            trend_map[ev["date"]]["events"].add(ev["id"])
+    async for rec in db.attendance_records.find({"date": {"$in": days}}, {"_id": 0, "date": 1, "status_id": 1, "event_id": 1}):
+        d = rec["date"]
+        if d in trend_map:
+            trend_map[d]["total"] += 1
+            st = statuses.get(rec.get("status_id"))
+            if st and st.get("counts_present"):
+                trend_map[d]["present"] += 1
+    trend = []
+    for d in days:
+        v = trend_map[d]
+        pct = round((v["present"] / v["total"]) * 100, 1) if v["total"] else 0
+        trend.append({
+            "date": d[5:],  # MM-DD
+            "present": v["present"],
+            "total": v["total"],
+            "events": len(v["events"]),
+            "percentage": pct,
+        })
+
+    # Status distribution over last 90 days
+    since = (date.today() - timedelta(days=90)).isoformat()
+    dist_counts = {}
+    async for rec in db.attendance_records.find({"date": {"$gte": since}}, {"_id": 0, "status_id": 1}):
+        st = statuses.get(rec.get("status_id"))
+        key = st["key"] if st else "lainnya"
+        dist_counts[key] = dist_counts.get(key, 0) + 1
+    distribution = []
+    for s in sorted(statuses.values(), key=lambda x: x.get("order", 99)):
+        distribution.append({"key": s["key"], "label": s["name"], "value": dist_counts.get(s["key"], 0)})
+
+    return {"trend": trend, "distribution": distribution}
+
+
 @router.get("/audit-logs")
 async def audit_logs(
     module: Optional[str] = None, action: Optional[str] = None,
