@@ -1,0 +1,97 @@
+{
+  "identity_and_theme": {
+    "project_name": "INFORMASI KEPEGAWAIAN LAGUSIT",
+    "subtitle": "Sistem Monitoring Kepegawaian",
+    "organization": "Lapas Gunungsitoli",
+    "archetype": "SWISS & GOVERNMENT PRECISION",
+    "tone": "Authoritative, Minimalist, Government-Grade, Elegant, Frictionless",
+    "mode": "Light Dashboard with Dark Navy Structural Elements & Single-Viewport Landing Page",
+    "strict_visual_rules": [
+      "ABSOLUTELY NO IMAGES or photos anywhere in the UI (no stock photos, no hero photos, no avatars from URLs, no building photos, no carousels, no decorative banners).",
+      "No logo on the landing page.",
+      "Landing page MUST fit strictly within ONE single viewport height (100vh / h-screen) without scrolling.",
+      "Primary color palette strictly adhered to: Navy #0B1F3A, Dark Navy #071426, Gold #C9A227, Soft Gold #D8B95A, Silver #A7ADB5, Light Silver #E5E7EB, White #FFFFFF, Background #F8FAFC.",
+      "Use typography, layout, borders, crisp shadows, subtle geometric badges, and Lucide React icons for all visual hierarchy."
+    ]
+  },
+  "colors": {
+    "primary": "#0B1F3A",
+    "dark_navy": "#071426",
+    "accent_gold": "#C9A227",
+    "soft_gold": "#D8B95A",
+    "secondary_silver": "#A7ADB5",
+    "light_silver": "#E5E7EB",
+    "background": "#F8FAFC",
+    "surface_white": "#FFFFFF",
+    "border_default": "#E2E8F0",
+    "text_main": "#0F172A",
+    "text_muted": "#64748B",
+    "text_inverse": "#FFFFFF",
+    "status": {
+      "hadir": { "bg": "#ECFDF5", "text": "#047857", "border": "#A7F3D0", "label": "Hadir" },
+      "terlambat": { "bg": "#FFFBEB", "text": "#B45309", "border": "#FDE68A", "label": "Terlambat" },
+      "izin": { "bg": "#EFF6FF", "text": "#1D4ED8", "border": "#BFDBFE", "label": "Izin" },
+      "sakit": { "bg": "#F5F3FF", "text": "#6D28D9", "border": "#DDD6FE", "label": "Sakit" },
+      "dinas": { "bg": "#EEF2FF", "text": "#3730A3", "border": "#C7D2FE", "label": "Dinas" },
+      "cuti": { "bg": "#F0FDFA", "text": "#0F766E", "border": "#99F6E4", "label": "Cuti" },
+      "tanpa_keterangan": { "bg": "#FFF1F2", "text": "#BE123C", "border": "#FECDD3", "label": "Tanpa Keterangan" },
+      "kgb_aman": { "bg": "#ECFDF5", "text": "#047857", "label": "Aman" },
+      "kgb_mendekati": { "bg": "#FEF3C7", "text": "#D97706", "label": "Mendekati" },
+      "kgb_jatuh_tempo": { "bg": "#FFEDD5", "text": "#C2410C", "label": "Jatuh Tempo" },
+      "kgb_terlambat": { "bg": "#FFE4E6", "text": "#E11D48", "label": "Terlambat" }
+    }
+  },
+  "typography": {
+    "font_family": "Inter, system-ui, -apple-system, sans-serif",
+    "hierarchy": {
+      "hero_title": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white",
+      "section_heading": "text-2xl font-bold tracking-tight text-[#0B1F3A]",
+      "card_heading": "text-lg font-semibold text-[#0B1F3A]",
+      "sub_heading": "text-sm font-medium text-slate-500 uppercase tracking-widest",
+      "body_regular": "text-sm text-slate-700 leading-relaxed",
+      "caption": "text-xs text-slate-500"
+    }
+  },
+  "layout_and_navigation": {
+    "landing_page": {
+      "container": "h-screen max-h-screen w-full overflow-hidden bg-[#071426] text-white flex flex-col justify-between p-6 sm:p-12 relative border-t-4 border-[#C9A227]",
+      "header_tag": "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0B1F3A] border border-[#C9A227]/40 text-[#D8B95A] text-xs font-semibold tracking-wider uppercase w-fit",
+      "title_area": "max-w-3xl space-y-4 my-auto",
+      "buttons": {
+        "login": "bg-[#C9A227] hover:bg-[#b59120] text-[#071426] font-bold px-6 py-3 rounded-md transition-all shadow-md flex items-center justify-center gap-2 text-sm",
+        "tentang_sistem": "bg-transparent border border-slate-600 hover:border-[#D8B95A] text-slate-200 hover:text-white font-medium px-6 py-3 rounded-md transition-all flex items-center justify-center gap-2 text-sm"
+      },
+      "footer": "border-t border-slate-800 pt-4 flex justify-between items-center text-xs text-slate-400"
+    },
+    "dashboard": {
+      "sidebar": "bg-[#071426] text-white border-r border-slate-800 w-64 min-h-screen flex flex-col justify-between",
+      "sidebar_active_link": "bg-[#0B1F3A] text-[#D8B95A] border-l-4 border-[#C9A227] font-medium text-sm px-4 py-2.5 flex items-center gap-3",
+      "sidebar_inactive_link": "text-slate-300 hover:bg-[#0B1F3A]/60 hover:text-white text-sm px-4 py-2.5 flex items-center gap-3 transition-colors",
+      "header": "bg-[#0B1F3A] border-b border-slate-800 text-white h-16 px-6 flex items-center justify-between sticky top-0 z-40 shadow-sm",
+      "main_area": "bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-6 space-y-6"
+    }
+  },
+  "component_styling_rules": {
+    "card": "bg-white border border-slate-200 shadow-sm rounded-lg p-5 md:p-6 hover:border-slate-300 transition-all",
+    "stat_card": "bg-white border border-slate-200 rounded-lg p-5 flex items-center justify-between shadow-sm relative overflow-hidden border-l-4 border-l-[#0B1F3A]",
+    "table": {
+      "container": "bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm",
+      "header": "bg-[#F8FAFC] border-b border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider text-left py-3 px-4",
+      "row": "border-b border-slate-100 hover:bg-slate-50/80 transition-colors text-sm text-slate-800"
+    },
+    "badge": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+    "avatar_replacement": "w-9 h-9 rounded-full bg-[#0B1F3A] text-[#D8B95A] border border-[#C9A227]/40 flex items-center justify-center font-bold text-xs uppercase"
+  },
+  "accessibility_and_testing": {
+    "testing_attribute": "data-testid",
+    "test_id_rules": "All interactive buttons, text inputs, selects, tab triggers, modal triggers, table rows, and status badges MUST feature a readable kebab-case data-testid attribute.",
+    "contrast_standard": "All text over Navy or Gold must meet minimum WCAG AA standards (4.5:1 ratio)."
+  },
+  "instructions_to_main_agent": [
+    "Strictly avoid any images, image tags, Unsplash placeholders, external image URLs, or image background CSS rule.",
+    "Ensure public landing page fits in ONE viewport (100vh) without scrollbars.",
+    "Ensure navigation drawer works cleanly on mobile responsive break-points.",
+    "Add data-testid attributes to all key inputs, actions, tabs, status badges, and data cells.",
+    "Use standard Lucide icons and pure CSS color/shadow treatments for visual depth."
+  ]
+}
