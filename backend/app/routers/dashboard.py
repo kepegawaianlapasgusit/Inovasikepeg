@@ -20,16 +20,28 @@ async def dashboard(user: dict = Depends(get_current_user)):
         today_events = await db.attendance_events.count_documents({"deleted": {"$ne": True}, "date": today})
         today_records = await db.attendance_records.count_documents({"date": today})
 
-        # KGB approaching
-        kgb_items = [clean(k) async for k in db.kgb_records.find({"deleted": {"$ne": True}})]
-        kgb_due = 0
-        for k in kgb_items:
-            nd = k.get("next_date", "")
-            if nd and nd[:10] <= date.today().replace(month=12, day=31).isoformat():
-                pass
-        # simpler: count next_date within 90 days
-        kgb_due = await db.kgb_records.count_documents({"deleted": {"$ne": True}})
-        promo_due = await db.promotion_records.count_documents({"deleted": {"$ne": True}})
+        # KGB / Promotion approaching due (within threshold days or overdue)
+        from datetime import datetime as _dt, date as _date
+        settings = await db.system_settings.find_one({"id": "global"}) or {}
+        kgb_thr = settings.get("kgb_threshold_days", 90)
+        promo_thr = settings.get("promotion_threshold_days", 120)
+
+        def _due(records, thr):
+            n = 0
+            for r in records:
+                nd = (r.get("next_date") or "")[:10]
+                try:
+                    dl = (_dt.strptime(nd, "%Y-%m-%d").date() - _date.today()).days
+                    if dl <= thr:
+                        n += 1
+                except ValueError:
+                    continue
+            return n
+
+        kgb_items = [k async for k in db.kgb_records.find({"deleted": {"$ne": True}}, {"_id": 0, "next_date": 1})]
+        promo_items = [p async for p in db.promotion_records.find({"deleted": {"$ne": True}}, {"_id": 0, "next_date": 1})]
+        kgb_due = _due(kgb_items, kgb_thr)
+        promo_due = _due(promo_items, promo_thr)
 
         agenda_today = [clean(a) async for a in db.events.find({"deleted": {"$ne": True}, "date": today}).limit(10)]
         announcements = [clean(a) async for a in db.announcements.find({"deleted": {"$ne": True}}).sort("created_at", -1).limit(5)]
