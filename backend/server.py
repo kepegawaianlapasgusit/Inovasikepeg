@@ -11,7 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.db import client
 from app.seed import seed
-from app.routers import auth, rbac, master, employees, attendance, modules, dashboard
+from app.routers import auth, rbac, master, employees, attendance, modules, dashboard, reports_export, cron
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("lagusit")
@@ -31,6 +31,8 @@ app.include_router(employees.router)
 app.include_router(attendance.router)
 app.include_router(modules.router)
 app.include_router(dashboard.router)
+app.include_router(reports_export.router)
+app.include_router(cron.router)
 
 app.add_middleware(
     CORSMiddleware,

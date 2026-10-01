@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api, apiError } from "@/lib/api";
+import { api, apiError, downloadFile } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useMaster } from "@/hooks/useMaster";
 import { Card, StatusPill, EmptyState } from "@/components/common/Ui";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ATTENDANCE_STATUS_STYLE, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, UserPlus, Wrench, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, UserPlus, Wrench, Plus, Trash2, FileDown } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -23,6 +23,14 @@ export default function AttendanceDetail() {
 
   const canCreate = has("attendance.create");
   const canCorrect = has("attendance.correct");
+  const canExport = has("report.export", "attendance.export");
+
+  const exportCombined = async () => {
+    try {
+      await downloadFile(`/reports/apel/${id}/export`, `laporan-${event?.code || "apel"}.pdf`);
+      toast.success("Mengunduh laporan gabungan");
+    } catch { toast.error("Export gagal — periksa izin Anda"); }
+  };
 
   const loadEvent = useCallback(() => {
     api.get(`/attendance/events/${id}`).then(({ data }) => setEvent(data)).catch(() => navigate("/app/attendance"));
@@ -53,6 +61,11 @@ export default function AttendanceDetail() {
           <div className="text-right">
             <p className="text-3xl font-bold text-[#047857]">{recap.percentage}%</p>
             <p className="text-xs text-slate-500">{recap.present} dari {recap.total} hadir</p>
+            {canExport && (
+              <button onClick={exportCombined} className="mt-2 border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 ml-auto" data-testid="export-combined-btn">
+                <FileDown size={14} className="text-red-600" /> Laporan Gabungan (PDF)
+              </button>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 mt-4">

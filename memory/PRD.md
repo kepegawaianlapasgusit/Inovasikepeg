@@ -33,14 +33,17 @@ Sistem informasi kepegawaian terintegrasi, production-ready, modular, RBAC + gra
 - Backend 36/36 pytest green (`/app/backend/tests/test_lagusit_api.py`). Frontend core flows verified via Playwright. No critical issues.
 
 ## Backlog / Remaining
-- P1: Export PDF & Excel untuk Report Center (saat ini JSON + Print).
-- P1: Upload file nyata via Google Drive API (butuh Google Cloud project, OAuth consent, Client ID/Secret & scope Drive dari user). Saat ini simpan metadata.
-- P2: Reminder/notifikasi terjadwal (KGB/pangkat/agenda) via cron.
-- P2: Laporan gabungan apel (informasi+rekap+notula+dokumentasi) satu halaman cetak.
+- P1: Upload file nyata via Google Drive API (DITUNDA — user akan sediakan Google Cloud project, OAuth consent, Client ID/Secret & scope Drive). Saat ini simpan metadata.
+- P2: Laporan Notula Apel terfilter periode/pembina (saat ini per-kegiatan via laporan gabungan).
 - P2: Data-access scoping pimpinan per-unit yang lebih granular.
 - P3: a11y DialogDescription pada dialog shadcn.
 
+## Added 2026-10-01 (Fase 2)
+- Export PDF & Excel: Laporan Data Pegawai & Rekap Kehadiran Apel (reportlab + openpyxl), unduh via blob + Bearer. Tombol di Pusat Laporan.
+- Laporan Apel Gabungan (PDF): Informasi + Rekap + Daftar Kehadiran + Notula/Amanat + Dokumentasi dalam satu halaman — tombol di detail kegiatan apel. Diverifikasi visual.
+- Pengingat Otomatis: endpoint cron `/api/cron/reminders` (Bearer WEBHOOK_CRON_SECRET, ack cepat + background task, dedup via ref) membuat notifikasi KGB, kenaikan pangkat (dalam threshold), dan agenda (hari ini/besok). Dijadwalkan harian di `/app/.emergent/crons.yml` (06:00 WIB).
+
 ## Next Tasks
-1. Export PDF/Excel laporan.
-2. Integrasi Google Drive untuk upload dokumen & dokumentasi apel.
-3. Reminder terjadwal (scheduled tasks).
+1. Integrasi Google Drive untuk upload dokumen & dokumentasi apel (menunggu kredensial user).
+2. Laporan Notula Apel terfilter periode/pembina/lokasi.
+

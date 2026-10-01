@@ -1,0 +1,8 @@
+crons:
+  - name: daily-reminders
+    description: "Sends daily KGB, promotion, and agenda reminder notifications at 06:00 WIB"
+    cron: "0 23 * * *"
+    endpoint: "{{BASE_URL}}/api/cron/reminders"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true
